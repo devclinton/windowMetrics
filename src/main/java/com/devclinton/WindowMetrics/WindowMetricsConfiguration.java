@@ -8,13 +8,15 @@ import io.federecio.dropwizard.swagger.SwaggerBundleConfiguration;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
-/**
- * Created by Clinton Collins <clinton.collins@cgi.com> on 9/11/15.
+/** Our Window Metric Configuration Object
+ *
+ * Created by Clinton Collins <clinton.collins@gmail.com> on 9/11/15.
  */
 public class WindowMetricsConfiguration extends Configuration {
 
     @JsonProperty("swagger")
     private SwaggerBundleConfiguration swaggerBundleConfiguration;
+
     @Valid
     @NotNull
     private DataSourceFactory database = new DataSourceFactory();

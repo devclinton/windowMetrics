@@ -1,7 +1,11 @@
 package com.devclinton.WindowMetrics;
 
+import com.devclinton.WindowMetrics.dao.WindowMetricDAO;
+import com.devclinton.WindowMetrics.models.WindowMetric;
+import com.devclinton.WindowMetrics.resources.WindowMetricsResource;
 import io.dropwizard.Application;
 import io.dropwizard.db.DataSourceFactory;
+import io.dropwizard.hibernate.HibernateBundle;
 import io.dropwizard.migrations.MigrationsBundle;
 import io.dropwizard.server.DefaultServerFactory;
 import io.dropwizard.setup.Bootstrap;
@@ -11,13 +15,13 @@ import io.federecio.dropwizard.swagger.SwaggerBundleConfiguration;
 
 public class WindowMetricsService extends Application<WindowMetricsConfiguration> {
 
-    /*private final HibernateBundle<WindowMetricsConfiguration> hibernateBundle
-            = new HibernateBundle<WindowMetricsConfiguration>(ADD YOUR ENTITY.CLASS HERE) {
+    private final HibernateBundle<WindowMetricsConfiguration> hibernateBundle
+            = new HibernateBundle<WindowMetricsConfiguration>(WindowMetric.class) {
         @Override
         public DataSourceFactory getDataSourceFactory(WindowMetricsConfiguration configuration) {
             return configuration.getDataSourceFactory();
         }
-    };*/
+    };
 
     public static void main(String[] args) throws Exception {
         new WindowMetricsService().run(args);
@@ -41,7 +45,7 @@ public class WindowMetricsService extends Application<WindowMetricsConfiguration
             }
         });
 
-        //bootstrap.addBundle(hibernateBundle);
+        bootstrap.addBundle(hibernateBundle);
     }
 
     @Override
@@ -50,6 +54,9 @@ public class WindowMetricsService extends Application<WindowMetricsConfiguration
         DefaultServerFactory sf = (DefaultServerFactory) appConfig.getServerFactory();
         String rootPath = "/api/v1/" + appConfig.getDeployName() + "/*";
         sf.setJerseyRootPath(rootPath);
+
+        final WindowMetricDAO metricDAO = new WindowMetricDAO(hibernateBundle.getSessionFactory());
+        environment.jersey().register(new WindowMetricsResource(metricDAO));
     }
 
 }
