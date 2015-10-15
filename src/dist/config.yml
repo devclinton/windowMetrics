@@ -1,0 +1,46 @@
+server:
+  applicationConnectors:
+    - type: http
+      port: 7000
+
+#    - type: https
+#      port: 7001
+#      keyStorePath: src/dist/WindowMetricsKeyStore.jks
+#      keyStorePassword: WindowMetrics
+#      validateCerts: false
+
+#  adminConnectors:
+#    - type: http
+#      port: 7003
+
+  requestLog:
+    appenders:
+      - type: console
+      - type: file
+        currentLogFilename: logs/access.log
+        archivedLogFilenamePattern: logs/access-%d.log
+        archivedFileCount: 3
+
+logging:
+  loggers:
+     org.hibernate.SQL: trace
+     org.hibernate.type: trace
+     org.hibernate.dialect.PostgreSQLDialect: trace
+     org.hibernate.dialect.H2Dialect: trace
+
+  appenders:
+    - type: console
+    - type: file
+      currentLogFilename: logs/WindowMetrics.log
+      archivedLogFilenamePattern: logs/WindowMetrics-%d.log
+      archivedFileCount: 5
+
+database:
+  driverClass: org.h2.Driver
+  user: windowMetrics
+  password: windowMetrics
+  url:  jdbc:h2:windowMetrics.tmp
+  properties:
+       hibernate.temp.use_jdbc_metadata_defaults: false
+       hibernate.dialect: org.hibernate.dialect.H2Dialect
+       hibernate.hbm2ddl.auto: create

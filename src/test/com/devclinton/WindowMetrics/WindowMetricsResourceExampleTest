@@ -1,0 +1,32 @@
+package com.devclinton.WindowMetrics;
+
+import io.dropwizard.testing.ConfigOverride;
+import io.dropwizard.testing.ResourceHelpers;
+import io.dropwizard.testing.junit.DropwizardAppRule;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.ClassRule;
+
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
+
+public class WindowMetricsResourceExampleTest {
+    protected static final String configPath = ResourceHelpers.resourceFilePath("generalLedger.test.yml");
+    protected static final String tempDB = TestUtility.safeTempFile("WMDB-");
+    @ClassRule
+    public static final DropwizardAppRule<WindowMetricsConfiguration> RULE = new DropwizardAppRule<>(
+            WindowMetricsService.class, configPath,
+            ConfigOverride.config("database.url", "jdbc:h2:" + tempDB));
+
+    protected Client client;
+
+    @Before
+    public void setUp() {
+        client = ClientBuilder.newClient();
+    }
+
+    @After
+    public void tearDown() {
+        client.close();
+    }
+}

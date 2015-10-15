@@ -2,13 +2,73 @@ group 'com.devclinton'
 version '0.1-SNAPSHOT'
 
 apply plugin: 'java'
+apply plugin: 'gradle-one-jar'
+apply plugin: 'application'
 
-sourceCompatibility = 1.5
+sourceCompatibility = 1.8
+
+// UTF-8 should be standard by now. So use it!
+[compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
+
+// The main class of the application
+mainClassName = 'com.devclinton.WindowMetrics.WindowMetricsService'
+
+// Add Gradle OneJar Plugin, see https://github.com/rholder/gradle-one-jar
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath 'com.github.rholder:gradle-one-jar:1.0.3'
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+// Set our project variables
+project.ext {
+    dropwizardVersion = '0.9.0-rc4';
+    postgresVersion = '9.4-1204-jdbc42'
+}
 
 repositories {
     mavenCentral()
 }
 
 dependencies {
+    compile(
+            'io.dropwizard:dropwizard-core:' + dropwizardVersion,
+            'io.dropwizard:dropwizard-testing:' + dropwizardVersion,
+            'io.dropwizard:dropwizard-auth:' + dropwizardVersion,
+            'io.dropwizard:dropwizard-hibernate:' + dropwizardVersion,
+            'io.dropwizard:dropwizard-metrics:' + dropwizardVersion,
+            'io.dropwizard:dropwizard-validation:' + dropwizardVersion,
+            'io.dropwizard:dropwizard-migrations:' + dropwizardVersion,
+            'io.dropwizard:dropwizard-benchmarks:' + dropwizardVersion,
+            //database depends
+            'org.postgresql:postgresql:' + postgresVersion,
+            'com.h2database:h2:1.4.190',
+            'io.federecio:dropwizard-swagger:0.7.0'
+    )
     testCompile group: 'junit', name: 'junit', version: '4.11'
+}
+
+// Configure the oneJar task
+task oneJar(type: OneJar) {
+    mainClass = mainClassName
+}
+
+// Configure the run task to start the Dropwizard service
+run {
+    args 'server', './src/dist/config/helloworld.yml'
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '1.4'
+}
+
+artifacts {
+    oneJar
 }
