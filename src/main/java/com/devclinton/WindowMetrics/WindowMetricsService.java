@@ -1,11 +1,15 @@
 package com.devclinton.WindowMetrics;
 
+import com.devclinton.WindowMetrics.configuration.WindowMetricsConfiguration;
 import com.devclinton.WindowMetrics.dao.WindowMetricDAO;
 import com.devclinton.WindowMetrics.models.WindowMetric;
 import com.devclinton.WindowMetrics.resources.WindowMetricsResource;
+import com.devclinton.WindowMetrics.tasks.PeriodicManagedTask;
+import com.devclinton.WindowMetrics.tasks.WindowInfoService;
 import io.dropwizard.Application;
 import io.dropwizard.db.DataSourceFactory;
 import io.dropwizard.hibernate.HibernateBundle;
+import io.dropwizard.lifecycle.Managed;
 import io.dropwizard.migrations.MigrationsBundle;
 import io.dropwizard.server.DefaultServerFactory;
 import io.dropwizard.setup.Bootstrap;
@@ -19,7 +23,7 @@ public class WindowMetricsService extends Application<WindowMetricsConfiguration
             = new HibernateBundle<WindowMetricsConfiguration>(WindowMetric.class) {
         @Override
         public DataSourceFactory getDataSourceFactory(WindowMetricsConfiguration configuration) {
-            return configuration.getDataSourceFactory();
+            return configuration.getDatabase();
         }
     };
 
@@ -33,7 +37,7 @@ public class WindowMetricsService extends Application<WindowMetricsConfiguration
         bootstrap.addBundle(new MigrationsBundle<WindowMetricsConfiguration>() {
             @Override
             public DataSourceFactory getDataSourceFactory(WindowMetricsConfiguration configuration) {
-                return configuration.getDataSourceFactory();
+                return configuration.getDatabase();
             }
         });
 
@@ -55,8 +59,16 @@ public class WindowMetricsService extends Application<WindowMetricsConfiguration
         String rootPath = "/api/v1/" + appConfig.getDeployName() + "/*";
         sf.setJerseyRootPath(rootPath);
 
+
+        final WindowInfoService windowInfo = new WindowInfoService(appConfig.getWindowMetricWatcher());
+        final Managed windowInfoImplementer = new PeriodicManagedTask(windowInfo);
+
+        environment.lifecycle().manage(windowInfoImplementer);
+
         final WindowMetricDAO metricDAO = new WindowMetricDAO(hibernateBundle.getSessionFactory());
         environment.jersey().register(new WindowMetricsResource(metricDAO));
+
+
     }
 
 }

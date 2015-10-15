@@ -58,6 +58,15 @@ public class WindowMetric implements Serializable {
     @Column(name = "updated")
     private Date updated;
 
+    public WindowMetric() {
+    }
+
+    public WindowMetric(String exe, String title, int activeSeconds) {
+        this.executable = exe;
+        this.windowTitle = title;
+        this.activeSeconds = activeSeconds;
+    }
+
     @PrePersist
     protected void onCreate() {
         setCreated(new Date());

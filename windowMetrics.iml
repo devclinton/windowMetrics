@@ -143,5 +143,8 @@
     <orderEntry type="library" exported="" name="Gradle: com.wordnik:swagger-models:1.5.1-M2" level="project" />
     <orderEntry type="library" exported="" name="Gradle: com.google.code.findbugs:annotations:2.0.1" level="project" />
     <orderEntry type="library" exported="" name="Gradle: com.wordnik:swagger-annotations:1.5.1-M2" level="project" />
+    <orderEntry type="library" exported="" name="Gradle: net.java.dev.jna:jna-platform:4.2.0" level="project" />
+    <orderEntry type="library" exported="" name="Gradle: net.java.dev.jna:jna:4.2.0" level="project" />
+    <orderEntry type="library" exported="" name="Gradle: commons-codec:commons-codec:1.10" level="project" />
   </component>
 </module>

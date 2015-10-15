@@ -36,6 +36,10 @@ public class WindowMetricDAO extends AbstractDAO<WindowMetric> {
         super(sessionFactory);
     }
 
+    public WindowMetric create(WindowMetric metric) {
+        return persist(metric);
+    }
+
     public Map.Entry<Long, List<WindowMetric>> findAll(MultivaluedMap queryParameters) throws Exception {
         Iterator it = queryParameters.keySet().iterator();
         Criteria criteria = criteria();
@@ -46,9 +50,6 @@ public class WindowMetricDAO extends AbstractDAO<WindowMetric> {
 
         //Or queries
         Disjunction orGrouping = (queryParameters.containsKey("orQuery") && Boolean.valueOf(queryParameters.getFirst("orQuery").toString())) ? Restrictions.disjunction() : null;
-
-        //alias entries
-        boolean aliasedEntries = false;
 
         while (it.hasNext()) {
             String key = (String) it.next();

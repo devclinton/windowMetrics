@@ -1,4 +1,4 @@
-package com.devclinton.WindowMetrics;
+package com.devclinton.WindowMetrics.configuration;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.dropwizard.Configuration;
@@ -14,6 +14,9 @@ import javax.validation.constraints.NotNull;
  */
 public class WindowMetricsConfiguration extends Configuration {
 
+    @JsonProperty("windowMetricWatcher")
+    private WindowMetricWatcher windowMetricWatcher = new WindowMetricWatcher();
+
     @JsonProperty("swagger")
     private SwaggerBundleConfiguration swaggerBundleConfiguration;
 
@@ -23,16 +26,6 @@ public class WindowMetricsConfiguration extends Configuration {
 
     public Object getDeployName() {
         return "WindowMetrics";
-    }
-
-    @JsonProperty("database")
-    public DataSourceFactory getDataSourceFactory() {
-        return getDatabase();
-    }
-
-    @JsonProperty("database")
-    public void setDataSourceFactory(DataSourceFactory dataSourceFactory) {
-        this.setDatabase(dataSourceFactory);
     }
 
     public SwaggerBundleConfiguration getSwaggerBundleConfiguration() {
@@ -49,5 +42,13 @@ public class WindowMetricsConfiguration extends Configuration {
 
     public void setDatabase(DataSourceFactory database) {
         this.database = database;
+    }
+
+    public WindowMetricWatcher getWindowMetricWatcher() {
+        return windowMetricWatcher;
+    }
+
+    public void setWindowMetricWatcher(WindowMetricWatcher windowMetricWatcher) {
+        this.windowMetricWatcher = windowMetricWatcher;
     }
 }

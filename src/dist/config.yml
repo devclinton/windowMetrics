@@ -1,3 +1,6 @@
+windowMetricWatcher:
+  interval: 5
+
 server:
   applicationConnectors:
     - type: http
@@ -27,6 +30,7 @@ logging:
      org.hibernate.type: trace
      org.hibernate.dialect.PostgreSQLDialect: trace
      org.hibernate.dialect.H2Dialect: trace
+     com.devclinton.WindowMetrics: trace
 
   appenders:
     - type: console
