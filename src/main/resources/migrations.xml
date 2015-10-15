@@ -10,7 +10,7 @@
 
         <!-- Window Metric Table -->
         <createTable tableName="window_metric" remarks="Table for GL Journals.">
-            <column name="id" type="int"
+            <column name="id" type="bigint"
                     remarks="The primary key" autoIncrement="true">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
