@@ -2,15 +2,6 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="85f9a668-03ac-4c4f-bc0c-63d98b790304" name="Default" comment="Initial Resource, DAO, DB">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/com/devclinton/WindowMetrics/models/WindowMetric.java" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/com/devclinton/WindowMetrics/dao/WindowMetricDAO.java" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/logs/WindowMetrics.log" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/com/devclinton/WindowMetrics/resources/WindowMetricsResource.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/test/com/devclinton/WindowMetrics/TestUtility.java" afterPath="$PROJECT_DIR$/src/test/com/devclinton/WindowMetrics/TestUtility.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/main/java/com/devclinton/WindowMetrics/WindowMetricsConfiguration.java" afterPath="$PROJECT_DIR$/src/main/java/com/devclinton/WindowMetrics/WindowMetricsConfiguration.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/main/java/com/devclinton/WindowMetrics/WindowMetricsService.java" afterPath="$PROJECT_DIR$/src/main/java/com/devclinton/WindowMetrics/WindowMetricsService.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/dist/config.yml" afterPath="$PROJECT_DIR$/src/dist/config.yml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/windowMetrics.iml" afterPath="$PROJECT_DIR$/windowMetrics.iml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
     </list>
     <ignored path="windowMetrics.iws" />
@@ -1147,7 +1138,13 @@
       <option name="project" value="LOCAL" />
       <updated>1444886240993</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="Initial Resource, DAO, DB">
+      <created>1444889025855</created>
+      <option name="number" value="00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1444889025855</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="ToolWindowManager">
@@ -1187,6 +1184,7 @@
     <option name="myLimit" value="2678400000" />
   </component>
   <component name="VcsManagerConfiguration">
+    <option name="CHECK_CODE_SMELLS_BEFORE_PROJECT_COMMIT" value="false" />
     <MESSAGE value="Initial Dropwizard Project" />
     <MESSAGE value="Initial Resource, DAO, DB" />
     <option name="LAST_COMMIT_MESSAGE" value="Initial Resource, DAO, DB" />
