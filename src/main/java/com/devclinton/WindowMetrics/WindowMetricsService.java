@@ -59,13 +59,14 @@ public class WindowMetricsService extends Application<WindowMetricsConfiguration
         String rootPath = "/api/v1/" + appConfig.getDeployName() + "/*";
         sf.setJerseyRootPath(rootPath);
 
+        final WindowMetricDAO metricDAO = new WindowMetricDAO(hibernateBundle.getSessionFactory());
 
-        final WindowInfoService windowInfo = new WindowInfoService(appConfig.getWindowMetricWatcher());
+        final WindowInfoService windowInfo = new WindowInfoService(appConfig.getWindowMetricWatcher(), metricDAO);
         final Managed windowInfoImplementer = new PeriodicManagedTask(windowInfo);
 
         environment.lifecycle().manage(windowInfoImplementer);
 
-        final WindowMetricDAO metricDAO = new WindowMetricDAO(hibernateBundle.getSessionFactory());
+
         environment.jersey().register(new WindowMetricsResource(metricDAO));
 
 
