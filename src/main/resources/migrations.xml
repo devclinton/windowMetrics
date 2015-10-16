@@ -9,7 +9,7 @@
     <changeSet id="1" author="Clinton Collins">
 
         <!-- Window Metric Table -->
-        <createTable tableName="window_metric" remarks="Table for GL Journals.">
+        <createTable tableName="window_metric" remarks="Window Metrics Table">
             <column name="id" type="bigint"
                     remarks="The primary key" autoIncrement="true">
                 <constraints primaryKey="true" nullable="false"/>

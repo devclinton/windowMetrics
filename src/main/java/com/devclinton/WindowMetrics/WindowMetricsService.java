@@ -61,7 +61,7 @@ public class WindowMetricsService extends Application<WindowMetricsConfiguration
 
         final WindowMetricDAO metricDAO = new WindowMetricDAO(hibernateBundle.getSessionFactory());
 
-        final WindowInfoService windowInfo = new WindowInfoService(appConfig.getWindowMetricWatcher(), metricDAO);
+        final WindowInfoService windowInfo = new WindowInfoService(appConfig.getWindowMetricWatcher(), hibernateBundle.getSessionFactory(), metricDAO);
         final Managed windowInfoImplementer = new PeriodicManagedTask(windowInfo);
 
         environment.lifecycle().manage(windowInfoImplementer);

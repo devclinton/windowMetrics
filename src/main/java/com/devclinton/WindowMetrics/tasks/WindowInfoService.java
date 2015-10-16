@@ -7,6 +7,10 @@ import com.devclinton.WindowMetrics.tasks.WindowInfo.WindowInfoInterface;
 import com.devclinton.WindowMetrics.tasks.WindowInfo.Windows;
 import com.devclinton.WindowMetrics.tasks.WindowInfo.XInfo;
 import com.google.common.util.concurrent.AbstractScheduledService;
+import org.hibernate.HibernateException;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.context.internal.ManagedSessionContext;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -26,9 +30,11 @@ public class WindowInfoService extends AbstractScheduledService {
     private WindowInfoInterface windowInterface = getWindowInterface();
     private WindowMetricDAO metricDAO;
     private Map<String, ChecksumEntry> m_checksums = new HashMap<String, ChecksumEntry>();
+    private SessionFactory sessionFactory;
 
-    public WindowInfoService(WindowMetricWatcher w, WindowMetricDAO dao) {
+    public WindowInfoService(WindowMetricWatcher w, SessionFactory sessionFactory, WindowMetricDAO dao) {
         config = w;
+        this.sessionFactory = sessionFactory;
         metricDAO = dao;
     }
 
@@ -46,37 +52,48 @@ public class WindowInfoService extends AbstractScheduledService {
 
     @Override
     protected void runOneIteration() throws Exception {
-        int secs = (int) windowInterface.getIdleTime();
-        if (secs < config.getIdleAfter() || config.isLogIdleTitle()) {
+        Session session = sessionFactory.openSession();
+        try {
+            ManagedSessionContext.bind(session);
+            int secs = (int) windowInterface.getIdleTime();
+            if (secs < config.getIdleAfter() || config.isLogIdleTitle()) {
 
-            WindowMetric metric = new WindowMetric(windowInterface.getProcessName(), windowInterface.getActiveWindowTitle(), config.getInterval() - secs);
-            String cksum = "";
+                WindowMetric metric = new WindowMetric(windowInterface.getProcessName(), windowInterface.getActiveWindowTitle(), config.getInterval() - secs);
+                String cksum = "";
 
-            long unixTime = System.currentTimeMillis() / 1000L;
-            //if checksum checking is enabled and we have yet to checksum app or
-            if (config.isChecksum() && (!m_checksums.containsKey(metric.getExecutable()) ||
-                    //or the app's checksum is older than configured timeout
-                    (unixTime - ((ChecksumEntry) m_checksums.get(metric.getExecutable())).lastUpdated)
-                            / 60 > config.getChecksumTimeout())
-                    ) {
-                cksum = getCkSum(metric.getExecutable());
-                ChecksumEntry newChecksum = new ChecksumEntry();
-                newChecksum.checksum = cksum;
-                m_checksums.put(metric.getExecutable(), newChecksum);
-                metric.setCheckSum(cksum);
-            }
-
-
-            if (m_logger.isLoggable(Level.FINE)) {
-                StringBuilder sb = new StringBuilder("Idle:%d(s)\nApp:%s\nTitle:%s");
-                if (config.isChecksum()) {
-                    sb.append("\nChecksum:%s");
+                long unixTime = System.currentTimeMillis() / 1000L;
+                //if checksum checking is enabled and we have yet to checksum app or
+                if (config.isChecksum() && (!m_checksums.containsKey(metric.getExecutable()) ||
+                        //or the app's checksum is older than configured timeout
+                        (unixTime - ((ChecksumEntry) m_checksums.get(metric.getExecutable())).lastUpdated)
+                                / 60 > config.getChecksumTimeout())
+                        ) {
+                    cksum = getCkSum(metric.getExecutable());
+                    ChecksumEntry newChecksum = new ChecksumEntry();
+                    newChecksum.checksum = cksum;
+                    m_checksums.put(metric.getExecutable(), newChecksum);
+                    metric.setCheckSum(cksum);
                 }
 
-                String msg = config.isChecksum() ? String.format(sb.toString(), metric.getActiveSeconds(), metric.getExecutable(), metric.getWindowTitle(), metric.getCheckSum()) : String.format(sb.toString(), metric.getActiveSeconds(), metric.getExecutable(), metric.getWindowTitle(), metric.getCheckSum());
-                m_logger.fine(msg);
+
+                if (m_logger.isLoggable(Level.FINE)) {
+                    StringBuilder sb = new StringBuilder("Idle:%d(s)\nApp:%s\nTitle:%s");
+                    if (config.isChecksum()) {
+                        sb.append("\nChecksum:%s");
+                    }
+
+                    String msg = config.isChecksum() ? String.format(sb.toString(), metric.getActiveSeconds(), metric.getExecutable(), metric.getWindowTitle(), metric.getCheckSum()) : String.format(sb.toString(), metric.getActiveSeconds(), metric.getExecutable(), metric.getWindowTitle(), metric.getCheckSum());
+                    m_logger.fine(msg);
+                }
+                try {
+                    metricDAO.create(metric);
+                } catch (HibernateException e) {
+                    m_logger.severe(e.toString());
+                }
             }
-            metricDAO.create(metric);
+        } finally {
+            session.close();
+            ManagedSessionContext.unbind(sessionFactory);
         }
     }
 

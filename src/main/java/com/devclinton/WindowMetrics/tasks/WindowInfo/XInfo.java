@@ -1,5 +1,6 @@
 package com.devclinton.WindowMetrics.tasks.WindowInfo;
 
+import com.codahale.metrics.annotation.Timed;
 import com.sun.jna.*;
 import com.sun.jna.platform.unix.X11;
 import com.sun.jna.ptr.IntByReference;
@@ -9,16 +10,20 @@ import com.sun.jna.ptr.PointerByReference;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 
 public class XInfo implements WindowInfoInterface {
     private static final X11 x11 = X11.INSTANCE;
+    private static final Pattern JVMs = Pattern.compile("(.*?)/?(java|python|perl|ruby|bash|sh|ksh)", Pattern.CASE_INSENSITIVE);
     private static Logger m_logger = Logger.getLogger(XInfo.class.getName());
     X11.Display display;
 
+    @Timed
     public long getIdleTime() {
         X11.Window win = null;
         Xss.XScreenSaverInfo info = null;
@@ -45,49 +50,30 @@ public class XInfo implements WindowInfoInterface {
         return idlemillis / 1000;
     }
 
+    @Timed
     public String getActiveWindowTitle() {
         String r = "";
+
         try {
-            display = x11.XOpenDisplay(null);
-            X11.Window root = x11.XDefaultRootWindow(display);
-            X11.Atom xa_prop_type = X11.XA_WINDOW;
-            X11.Atom xa_prop_name = x11.XInternAtom(display, "_NET_ACTIVE_WINDOW", false);
-
-            NativeLong long_offset = new NativeLong(0);
-            NativeLong long_length = new NativeLong(4096 / 4);
-
-            X11.AtomByReference xa_ret_type_ref = new X11.AtomByReference();
-            IntByReference ret_format_ref = new IntByReference();
-            NativeLongByReference ret_nitems_ref = new NativeLongByReference();
-            NativeLongByReference ret_bytes_after_ref = new NativeLongByReference();
-            PointerByReference ret_prop_ref = new PointerByReference();
-
-            if (x11.XGetWindowProperty(display, root, xa_prop_name, long_offset, long_length, false,
-                    xa_prop_type, xa_ret_type_ref, ret_format_ref,
-                    ret_nitems_ref, ret_bytes_after_ref, ret_prop_ref) != X11.Success) {
-                return null;
-
-            }
-
-            Pointer ret_prop = ret_prop_ref.getValue();
-            X11.Window active = new X11.Window(ret_prop.getLong(0));
-
+            X11.Window active = getActiveWindow(false);
             X11.XTextProperty property = new X11.XTextProperty();
-
             x11.XGetWMName(display, active, property);
+
             r = property.value;
         } finally {
-
-            if (display != null)
+            if (display != null) {
                 x11.XCloseDisplay(display);
-            display = null;
+                display = null;
+            }
         }
 
         return r;
     }
 
-    public String getProcessName() {
-        String r = "";
+
+    private X11.Window getActiveWindow(Boolean cleanupDisplay) {
+        PointerByReference ret_prop_ref = null;
+        X11.Window active = null;
         try {
             display = x11.XOpenDisplay(null);
             X11.Window root = x11.XDefaultRootWindow(display);
@@ -101,32 +87,82 @@ public class XInfo implements WindowInfoInterface {
             IntByReference ret_format_ref = new IntByReference();
             NativeLongByReference ret_nitems_ref = new NativeLongByReference();
             NativeLongByReference ret_bytes_after_ref = new NativeLongByReference();
-            PointerByReference ret_prop_ref = new PointerByReference();
+            ret_prop_ref = new PointerByReference();
 
             if (x11.XGetWindowProperty(display, root, xa_prop_name, long_offset, long_length, false,
                     xa_prop_type, xa_ret_type_ref, ret_format_ref,
-                    ret_nitems_ref, ret_bytes_after_ref, ret_prop_ref) != X11.Success) {
-                return null;
-
+                    ret_nitems_ref, ret_bytes_after_ref, ret_prop_ref) == X11.Success) {
+                Pointer ret_prop = ret_prop_ref.getValue();
+                active = new X11.Window(ret_prop.getLong(0));
+            }
+        } finally {
+            if (ret_prop_ref.getPointer() == null) {
+                x11.XFree(ret_prop_ref.getPointer());
             }
 
-            Pointer ret_prop = ret_prop_ref.getValue();
-            X11.Window active = new X11.Window(ret_prop.getLong(0));
+            if (display != null && cleanupDisplay) {
+                x11.XCloseDisplay(display);
+                display = null;
+            }
+        }
+        return active;
+    }
 
-            xa_prop_name = x11.XInternAtom(display, "_NET_WM_PID", false);
+    private String getScript(String filePath) {
 
-            xa_prop_type = X11.XA_CARDINAL;
-            x11.XGetWindowProperty(display, active, xa_prop_name, long_offset, long_length, false,
-                    xa_prop_type, xa_ret_type_ref, ret_format_ref,
-                    ret_nitems_ref, ret_bytes_after_ref, ret_prop_ref);
-
-            int pid = ret_prop_ref.getValue().getInt(0);
-            m_logger.info("Filename /proc/" + pid + "/cmdline");
-            r = Files.readSymbolicLink(new File("/proc/" + pid + "/exe").toPath()).toAbsolutePath().toString();
-
+        String ret = "";
+        try {
+            ret = new String(Files.readAllBytes(Paths.get(filePath)));
+            ret = ret.substring(0, ret.indexOf("\0"));
         } catch (IOException e) {
-            e.printStackTrace();
+            m_logger.severe("Issues Reading: " + filePath);
+        }
+        return ret;
+    }
+
+    @Timed
+    public String getProcessName() {
+        String r = "";
+        PointerByReference ret_prop_ref = null;
+        try {
+            X11.Window activeWindow = getActiveWindow(false);
+
+            X11.Atom xa_prop_name = x11.XInternAtom(display, "_NET_WM_PID", false);
+            X11.Atom xa_prop_type = X11.XA_CARDINAL;
+
+            NativeLong long_offset = new NativeLong(0);
+            NativeLong long_length = new NativeLong(4096 / 4);
+
+            X11.AtomByReference xa_ret_type_ref = new X11.AtomByReference();
+            IntByReference ret_format_ref = new IntByReference();
+            NativeLongByReference ret_nitems_ref = new NativeLongByReference();
+            NativeLongByReference ret_bytes_after_ref = new NativeLongByReference();
+
+            ret_prop_ref = new PointerByReference();
+
+            if (x11.XGetWindowProperty(display, activeWindow, xa_prop_name, long_offset, long_length, false,
+                    xa_prop_type, xa_ret_type_ref, ret_format_ref,
+                    ret_nitems_ref, ret_bytes_after_ref, ret_prop_ref) == X11.Success) {
+
+                int pid = ret_prop_ref.getValue().getInt(0);
+
+
+                try {
+                    r = Files.readSymbolicLink(new File("/proc/" + pid + "/exe").toPath()).toAbsolutePath().toString();
+                    /*if (JVMs.matcher(r).matches()) {
+                        if (m_logger.isLoggable(Level.FINE)) {
+                            m_logger.fine("The executable is a JVM/script engine, so we are now looking for the script.");
+                        }
+                       r = getScript("/proc/" + pid + "/cmdline");
+                    }*/
+                } catch (IOException e) {
+                    m_logger.severe("Issues Locating executable: /proc/" + pid + "/exe");
+                }
+            }
+
         } finally {
+            if (ret_prop_ref != null)
+                x11.XFree(ret_prop_ref.getPointer());
 
             if (display != null)
                 x11.XCloseDisplay(display);
