@@ -24,8 +24,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
@@ -33,6 +31,8 @@ import java.util.logging.Level;
  * Created by Clinton Collins <clinton.collins@gmail.com> on 10/15/15.
  */
 public class WindowInfoService extends AbstractScheduledService {
+    private static java.util.logging.Logger m_logger = java.util.logging.Logger.getLogger(WindowInfoService.class.getName());
+    //Caches
     private static Cache<ProcessInfo, ProcessMetric> processCache = CacheBuilder.newBuilder()
             .maximumSize(1000)
             .build();
@@ -45,15 +45,19 @@ public class WindowInfoService extends AbstractScheduledService {
             .maximumSize(1000)
             .build();
 
-    private static java.util.logging.Logger m_logger = java.util.logging.Logger.getLogger(WindowInfoService.class.getName());
+    private static WindowMetric lastWindow;
+    private static long activeFor = 0;
+
+
+    //Our config
     private final WindowMetricWatcher config;
+    //Handles interactions with windows/processes
     private WindowInfoInterface windowInterface = getWindowInterface();
 
+    //Our Database/ DAO objects
     private ProcessMetricDAO processMetricDAO;
     private WindowMetricDAO windowMetricDAO;
     private ArgumentsMetricsDAO argumentsMetricsDAO;
-
-    private Map<String, ChecksumEntry> m_checksums = new HashMap<String, ChecksumEntry>();
     private SessionFactory sessionFactory;
 
     public WindowInfoService(WindowMetricWatcher w, SessionFactory sessionFactory, WindowMetricDAO windowMetricDAO, ProcessMetricDAO processMetricDAO, ArgumentsMetricsDAO argumentsMetricsDAO) {
@@ -88,7 +92,7 @@ public class WindowInfoService extends AbstractScheduledService {
                 Transaction transaction = session.beginTransaction();
                 try {
                     ProcessInfo info = windowInterface.getProcessName();
-                    WindowMetric windowMetric = new WindowMetric(windowInterface.getActiveWindowTitle(), config.getInterval() - secs);
+                    WindowMetric currentWindowMetric = new WindowMetric(windowInterface.getActiveWindowTitle(), config.getInterval() - secs);
 
                     long unixTime = System.currentTimeMillis() / 1000L;
                     cksum = checksumExecutable(info, unixTime);
@@ -99,7 +103,7 @@ public class WindowInfoService extends AbstractScheduledService {
                             sb.append("\nChecksum:%s");
                         }
 
-                        String msg = config.isChecksum() ? String.format(sb.toString(), windowMetric.getActiveSeconds(), info.getExecutable(), windowMetric.getWindowTitle(), info.getArguments(), cksum) : String.format(sb.toString(), windowMetric.getActiveSeconds(), info.getExecutable(), windowMetric.getWindowTitle(), info.getArguments());
+                        String msg = config.isChecksum() ? String.format(sb.toString(), currentWindowMetric.getActiveSeconds(), info.getExecutable(), currentWindowMetric.getWindowTitle(), info.getArguments(), cksum) : String.format(sb.toString(), currentWindowMetric.getActiveSeconds(), info.getExecutable(), currentWindowMetric.getWindowTitle(), info.getArguments());
                         m_logger.fine(msg);
                     }
                     try {
@@ -136,8 +140,25 @@ public class WindowInfoService extends AbstractScheduledService {
                             argumentsCache.put(info, am);
                         }
 
-                        windowMetric.setProcess(processMetric);
-                        windowMetricDAO.create(windowMetric);
+                        if (lastWindow != null && currentWindowMetric.getWindowTitle().equals(lastWindow.getWindowTitle())) {
+                            activeFor += currentWindowMetric.getActiveSeconds();
+                        } else {
+                            currentWindowMetric.setProcess(processMetric);
+                            if (lastWindow != null) {
+                                lastWindow.setActiveSeconds((int) activeFor);
+                            } else {
+                                lastWindow = currentWindowMetric;
+                            }
+                            if (lastWindow.getActiveSeconds() == 0) {
+                                lastWindow.setActiveSeconds(config.getInterval() - currentWindowMetric.getActiveSeconds());
+                            }
+                            windowMetricDAO.create(lastWindow);
+                            activeFor = 0;
+                            lastWindow = currentWindowMetric;
+                        }
+                        if (lastWindow == null) {
+                            lastWindow = currentWindowMetric;
+                        }
                     } catch (HibernateException e) {
                         transaction.rollback();
                         m_logger.severe(e.toString());
