@@ -13,8 +13,8 @@ public class WindowMetricWatcher {
     private int idleAfter = 60;
     private boolean logIdleTitle = false;
 
-    private boolean checksum = false;
-    private int checksumTimeout = 7200;
+    private boolean checksum = true;
+    private int checksumTimeout = 60 * 60 * 48;
 
     public int getInterval() {
         return interval;

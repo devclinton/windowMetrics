@@ -1,9 +1,9 @@
 package com.devclinton.WindowMetrics.tasks.WindowInfo;
 
 public interface WindowInfoInterface {
-    long getIdleTime();
 
+    long getIdleTime();
     String getActiveWindowTitle();
 
-    String getProcessName();
+    ProcessInfo getProcessName();
 }

@@ -8,8 +8,8 @@
 
     <changeSet id="1" author="Clinton Collins">
 
-        <!-- Window Metric Table -->
-        <createTable tableName="window_metric" remarks="Window Metrics Table">
+        <!-- Process Metric Table -->
+        <createTable tableName="process_metric" remarks="Process Metrics Table">
             <column name="id" type="bigint"
                     remarks="The primary key" autoIncrement="true">
                 <constraints primaryKey="true" nullable="false"/>
@@ -17,14 +17,25 @@
             <column name="executable" type="varchar(2048)" remarks="External Journal ID. Managed by User">
                 <constraints nullable="false"/>
             </column>
-            <column name="arguments" type="TEXT" remarks="Arguments sent to process">
+            <column name="checksum" type="varchar(32)" remarks="Checksum of application">
                 <constraints nullable="true"/>
+            </column>
+            <column name="created" type="DATETIME" defaultValue="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated" type="DATETIME" defaultValue="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- Window Metric Table -->
+        <createTable tableName="window_metric" remarks="Window Metrics Table">
+            <column name="id" type="bigint"
+                    remarks="The primary key" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
             </column>
             <column name="window_title" type="varchar(2048)" remarks="Window Title of Active Application">
                 <constraints nullable="false"/>
-            </column>
-            <column name="checksum" type="varchar(32)" remarks="Checksum of application">
-                <constraints nullable="true"/>
             </column>
             <column name="active_seconds" type="int" remarks="How Long the application was active for">
                 <constraints nullable="false"/>
@@ -35,7 +46,50 @@
             <column name="updated" type="DATETIME" defaultValue="now()">
                 <constraints nullable="false"/>
             </column>
+            <column name="process_id" type="bigint">
+                <constraints primaryKey="false" nullable="false"/>
+            </column>
         </createTable>
+
+        <addForeignKeyConstraint baseColumnNames="process_id"
+                                 baseTableName="window_metric"
+                                 constraintName="fk_win_met_pid"
+                                 deferrable="false"
+                                 initiallyDeferred="false"
+                                 onDelete="CASCADE"
+                                 onUpdate="RESTRICT"
+                                 referencedColumnNames="id"
+                                 referencedTableName="process_metric"/>
+
+        <!-- Arguments Metric Table -->
+        <createTable tableName="arguments_metrics" remarks="Window Metrics Table">
+            <column name="id" type="bigint"
+                    remarks="The primary key" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="arguments" type="TEXT" remarks="Arguments sent to process">
+                <constraints nullable="true"/>
+            </column>
+            <column name="created" type="DATETIME" defaultValue="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated" type="DATETIME" defaultValue="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="process_id" type="bigint">
+                <constraints primaryKey="false" nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint baseColumnNames="process_id"
+                                 baseTableName="arguments_metrics"
+                                 constraintName="fk_arg_met_pid"
+                                 deferrable="false"
+                                 initiallyDeferred="false"
+                                 onDelete="CASCADE"
+                                 onUpdate="RESTRICT"
+                                 referencedColumnNames="id"
+                                 referencedTableName="process_metric"/>
 
     </changeSet>
 </databaseChangeLog>

@@ -17,7 +17,8 @@ import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 
-public class XInfo implements WindowInfoInterface {
+public class XInfo extends CachingInfoInterface implements WindowInfoInterface {
+
     private static final X11 x11 = X11.INSTANCE;
     private static final Pattern JVMs = Pattern.compile("(.*?)/?(java|python|perl|ruby|bash|sh|ksh)", Pattern.CASE_INSENSITIVE);
     private static Logger m_logger = Logger.getLogger(XInfo.class.getName());
@@ -71,6 +72,7 @@ public class XInfo implements WindowInfoInterface {
     }
 
 
+    @Timed
     private X11.Window getActiveWindow(Boolean cleanupDisplay) {
         PointerByReference ret_prop_ref = null;
         X11.Window active = null;
@@ -108,12 +110,14 @@ public class XInfo implements WindowInfoInterface {
         return active;
     }
 
-    private String getScript(String filePath) {
+    @Timed
+    private String cacheArguments(String filePath) {
 
         String ret = "";
         try {
             ret = new String(Files.readAllBytes(Paths.get(filePath)));
-            ret = ret.substring(0, ret.indexOf("\0"));
+            ret = "\"" + ret.replace("\0", "\" \"") + "\"";
+
         } catch (IOException e) {
             m_logger.severe("Issues Reading: " + filePath);
         }
@@ -121,55 +125,56 @@ public class XInfo implements WindowInfoInterface {
     }
 
     @Timed
-    public String getProcessName() {
-        String r = "";
+    public ProcessInfo getProcessName() {
+        ProcessInfo c = null;
         PointerByReference ret_prop_ref = null;
         try {
             X11.Window activeWindow = getActiveWindow(false);
 
-            X11.Atom xa_prop_name = x11.XInternAtom(display, "_NET_WM_PID", false);
-            X11.Atom xa_prop_type = X11.XA_CARDINAL;
+            String key = String.valueOf(activeWindow.longValue());
+            c = cache.getIfPresent(key);
+            if (c == null) {
+                c = new ProcessInfo();
+                X11.Atom xa_prop_name = x11.XInternAtom(display, "_NET_WM_PID", false);
+                X11.Atom xa_prop_type = X11.XA_CARDINAL;
 
-            NativeLong long_offset = new NativeLong(0);
-            NativeLong long_length = new NativeLong(4096 / 4);
+                NativeLong long_offset = new NativeLong(0);
+                NativeLong long_length = new NativeLong(4096 / 4);
 
-            X11.AtomByReference xa_ret_type_ref = new X11.AtomByReference();
-            IntByReference ret_format_ref = new IntByReference();
-            NativeLongByReference ret_nitems_ref = new NativeLongByReference();
-            NativeLongByReference ret_bytes_after_ref = new NativeLongByReference();
+                X11.AtomByReference xa_ret_type_ref = new X11.AtomByReference();
+                IntByReference ret_format_ref = new IntByReference();
+                NativeLongByReference ret_nitems_ref = new NativeLongByReference();
+                NativeLongByReference ret_bytes_after_ref = new NativeLongByReference();
 
-            ret_prop_ref = new PointerByReference();
+                ret_prop_ref = new PointerByReference();
 
-            if (x11.XGetWindowProperty(display, activeWindow, xa_prop_name, long_offset, long_length, false,
-                    xa_prop_type, xa_ret_type_ref, ret_format_ref,
-                    ret_nitems_ref, ret_bytes_after_ref, ret_prop_ref) == X11.Success) {
+                if (x11.XGetWindowProperty(display, activeWindow, xa_prop_name, long_offset, long_length, false,
+                        xa_prop_type, xa_ret_type_ref, ret_format_ref,
+                        ret_nitems_ref, ret_bytes_after_ref, ret_prop_ref) == X11.Success) {
 
-                int pid = ret_prop_ref.getValue().getInt(0);
-
-
-                try {
-                    r = Files.readSymbolicLink(new File("/proc/" + pid + "/exe").toPath()).toAbsolutePath().toString();
-                    /*if (JVMs.matcher(r).matches()) {
-                        if (m_logger.isLoggable(Level.FINE)) {
-                            m_logger.fine("The executable is a JVM/script engine, so we are now looking for the script.");
-                        }
-                       r = getScript("/proc/" + pid + "/cmdline");
-                    }*/
-                } catch (IOException e) {
-                    m_logger.severe("Issues Locating executable: /proc/" + pid + "/exe");
+                    int pid = ret_prop_ref.getValue().getInt(0);
+                    try {
+                        c.setExecutable(Files.readSymbolicLink(new File("/proc/" + pid + "/exe").toPath()).toAbsolutePath().toString());
+                        c.setArguments(cacheArguments("/proc/" + pid + "/cmdline"));
+                        cache.put(key, c);
+                    } catch (IOException e) {
+                        m_logger.severe("Issues Locating executable: /proc/" + pid + "/exe");
+                    }
                 }
+            } else {
+                c.setFromCache(true);
             }
-
         } finally {
-            if (ret_prop_ref != null)
+            if (ret_prop_ref != null) {
                 x11.XFree(ret_prop_ref.getPointer());
+            }
 
             if (display != null)
                 x11.XCloseDisplay(display);
             display = null;
         }
 
-        return r;
+        return c;
     }
 
     /**
