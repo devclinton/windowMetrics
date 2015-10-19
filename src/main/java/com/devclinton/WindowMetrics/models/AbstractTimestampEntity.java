@@ -1,5 +1,8 @@
 package com.devclinton.WindowMetrics.models;
 
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
 import javax.persistence.*;
 import java.util.Date;
 
@@ -8,10 +11,12 @@ public abstract class AbstractTimestampEntity {
 
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "created", nullable = false)
+    @CreationTimestamp
     private Date created;
 
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "updated", nullable = false)
+    @UpdateTimestamp
     private Date updated;
 
     @PrePersist

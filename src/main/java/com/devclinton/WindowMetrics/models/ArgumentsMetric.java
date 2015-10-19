@@ -8,7 +8,7 @@ import java.io.Serializable;
  * Created by Clinton Collins <clinton.collins@cgi.com> on 10/18/15.
  */
 @Entity
-@Table(name = "arguments_metric")
+@Table(name = "arguments_metrics")
 @NamedQueries({
         @NamedQuery(name = "ArgumentsMetric.findAll", query = "SELECT a FROM ArgumentsMetric a"),
         @NamedQuery(name = "ArgumentsMetric.findAllLessThanDate", query = "SELECT a FROM ArgumentsMetric a where updated < :date")
@@ -17,9 +17,8 @@ public class ArgumentsMetric extends AbstractTimestampEntity implements Serializ
     private static final long serialVersionUID = 1L;
 
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Basic(optional = false)
-    @NotNull
     @Column(name = "id")
     private Long id;
 
@@ -28,6 +27,7 @@ public class ArgumentsMetric extends AbstractTimestampEntity implements Serializ
     private String arguments;
 
     @JoinColumn(name = "process_id", referencedColumnName = "id")
+    @ManyToOne
     private ProcessMetric process;
 
     public Long getId() {

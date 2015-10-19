@@ -21,13 +21,13 @@ public class WindowMetric extends AbstractTimestampEntity implements Serializabl
     private static final long serialVersionUID = 1L;
 
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Basic(optional = false)
-    @NotNull
     @Column(name = "id")
     private Long id;
 
     @JoinColumn(name = "process_id", referencedColumnName = "id")
+    @ManyToOne
     private ProcessMetric process;
 
     @NotNull

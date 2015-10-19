@@ -17,6 +17,7 @@ import com.google.common.util.concurrent.AbstractScheduledService;
 import org.hibernate.HibernateException;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
 import org.hibernate.context.internal.ManagedSessionContext;
 
 import java.io.File;
@@ -52,7 +53,6 @@ public class WindowInfoService extends AbstractScheduledService {
     private WindowMetricDAO windowMetricDAO;
     private ArgumentsMetricsDAO argumentsMetricsDAO;
 
-
     private Map<String, ChecksumEntry> m_checksums = new HashMap<String, ChecksumEntry>();
     private SessionFactory sessionFactory;
 
@@ -83,61 +83,69 @@ public class WindowInfoService extends AbstractScheduledService {
         try {
             ManagedSessionContext.bind(session);
             int secs = (int) windowInterface.getIdleTime();
+
             if (secs < config.getIdleAfter() || config.isLogIdleTitle()) {
-
-                ProcessInfo info = windowInterface.getProcessName();
-                WindowMetric windowMetric = new WindowMetric(windowInterface.getActiveWindowTitle(), config.getInterval() - secs);
-
-                long unixTime = System.currentTimeMillis() / 1000L;
-                cksum = checksumExecutable(info, unixTime);
-
-                if (m_logger.isLoggable(Level.FINE)) {
-                    StringBuilder sb = new StringBuilder("Idle:%d(s)\nApp:%s\nTitle:%s\nArguments: %s");
-                    if (config.isChecksum()) {
-                        sb.append("\nChecksum:%s");
-                    }
-
-                    String msg = config.isChecksum() ? String.format(sb.toString(), windowMetric.getActiveSeconds(), info.getExecutable(), windowMetric.getWindowTitle(), info.getArguments(), cksum) : String.format(sb.toString(), windowMetric.getActiveSeconds(), info.getExecutable(), windowMetric.getWindowTitle(), info.getArguments());
-                    m_logger.fine(msg);
-                }
+                Transaction transaction = session.beginTransaction();
                 try {
-                    ProcessMetric processMetric = processCache.getIfPresent(info);
-                    ArgumentsMetric argumentsMetric = argumentsCache.getIfPresent(info);
-                    if (processMetric == null)  // none in processCache, so try to load from db
-                    {
-                        processMetric = processMetricDAO.findByExeAndChecksum(info.getExecutable(), cksum);
-                        if (processMetric == null) { //create one
-                            if (m_logger.isLoggable(Level.FINEST)) {
-                                m_logger.finest("Create a new process entry for process");
-                            }
-                            processMetric = new ProcessMetric();
-                            processMetric.setExecutable(info.getExecutable());
-                            processMetric.setCheckSum(cksum);
-                            processMetric = processMetricDAO.create(processMetric);
-                        } else {
-                            if (m_logger.isLoggable(Level.FINEST)) {
-                                m_logger.finest("Process loaded from DB");
-                            }
-                        }
-                        processCache.put(info, processMetric);
-                    }
+                    ProcessInfo info = windowInterface.getProcessName();
+                    WindowMetric windowMetric = new WindowMetric(windowInterface.getActiveWindowTitle(), config.getInterval() - secs);
 
-                    //Load a new argument metric if we need to
-                    if (argumentsMetric == null) {
-                        if (m_logger.isLoggable(Level.FINEST)) {
-                            m_logger.finest("Create a new arguments entry for process");
-                        }
-                        ArgumentsMetric am = new ArgumentsMetric();
-                        am.setProcess(processMetric);
-                        am.setArguments(info.getArguments());
-                        argumentsMetricsDAO.create(am);
-                        argumentsCache.put(info, am);
-                    }
+                    long unixTime = System.currentTimeMillis() / 1000L;
+                    cksum = checksumExecutable(info, unixTime);
 
-                    windowMetric.setProcess(processMetric);
-                    windowMetricDAO.create(windowMetric);
-                } catch (HibernateException e) {
-                    m_logger.severe(e.toString());
+                    if (m_logger.isLoggable(Level.FINE)) {
+                        StringBuilder sb = new StringBuilder("Idle:%d(s)\nApp:%s\nTitle:%s\nArguments: %s");
+                        if (config.isChecksum()) {
+                            sb.append("\nChecksum:%s");
+                        }
+
+                        String msg = config.isChecksum() ? String.format(sb.toString(), windowMetric.getActiveSeconds(), info.getExecutable(), windowMetric.getWindowTitle(), info.getArguments(), cksum) : String.format(sb.toString(), windowMetric.getActiveSeconds(), info.getExecutable(), windowMetric.getWindowTitle(), info.getArguments());
+                        m_logger.fine(msg);
+                    }
+                    try {
+                        ProcessMetric processMetric = processCache.getIfPresent(info);
+                        ArgumentsMetric argumentsMetric = argumentsCache.getIfPresent(info);
+                        if (processMetric == null)  // none in processCache, so try to load from db
+                        {
+                            processMetric = processMetricDAO.findByExeAndChecksum(info.getExecutable(), cksum);
+                            if (processMetric == null) { //create one
+                                if (m_logger.isLoggable(Level.FINEST)) {
+                                    m_logger.finest("Create a new process entry for process");
+                                }
+                                processMetric = new ProcessMetric();
+                                processMetric.setExecutable(info.getExecutable());
+                                processMetric.setCheckSum(cksum);
+                                processMetric = processMetricDAO.create(processMetric);
+                            } else {
+                                if (m_logger.isLoggable(Level.FINEST)) {
+                                    m_logger.finest("Process loaded from DB");
+                                }
+                            }
+                            processCache.put(info, processMetric);
+                        }
+
+                        //Load a new argument metric if we need to
+                        if (argumentsMetric == null) {
+                            if (m_logger.isLoggable(Level.FINEST)) {
+                                m_logger.finest("Create a new arguments entry for process");
+                            }
+                            ArgumentsMetric am = new ArgumentsMetric();
+                            am.setProcess(processMetric);
+                            am.setArguments(info.getArguments());
+                            argumentsMetricsDAO.create(am);
+                            argumentsCache.put(info, am);
+                        }
+
+                        windowMetric.setProcess(processMetric);
+                        windowMetricDAO.create(windowMetric);
+                    } catch (HibernateException e) {
+                        transaction.rollback();
+                        m_logger.severe(e.toString());
+                    }
+                    transaction.commit();
+                } catch (Exception e) {
+                    transaction.rollback();
+                    m_logger.log(Level.SEVERE, "An unknown error has occured", e);
                 }
             }
         } finally {
