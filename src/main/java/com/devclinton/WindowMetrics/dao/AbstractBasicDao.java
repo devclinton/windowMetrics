@@ -20,11 +20,11 @@ import java.util.Map;
  */
 abstract class AbstractBasicDao<T> extends AbstractDAO<T> {
 
-    protected static Map<String, String> fieldMap;
+    private static Map<String, String> fieldMap;
 
-    public AbstractBasicDao(SessionFactory sessionFactory, Map<String, String> fieldMap) {
+    AbstractBasicDao(SessionFactory sessionFactory, Map<String, String> fieldMap) {
         super(sessionFactory);
-        this.fieldMap = fieldMap;
+        fieldMap = fieldMap;
     }
 
     @Timed

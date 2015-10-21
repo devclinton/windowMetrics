@@ -40,13 +40,14 @@ public class XInfo extends CachingInfoInterface implements WindowInfoInterface {
 
             idlemillis = info.idle.longValue();
         } finally {
-            if (info != null)
+            /*if (info != null) {
                 x11.XFree(info.getPointer());
-            info = null;
+            }*/
 
-            if (display != null)
+            if (display != null) {
                 x11.XCloseDisplay(display);
-            display = null;
+                display = null;
+            }
         }
         return idlemillis / 1000;
     }
@@ -98,9 +99,9 @@ public class XInfo extends CachingInfoInterface implements WindowInfoInterface {
                 active = new X11.Window(ret_prop.getLong(0));
             }
         } finally {
-            if (ret_prop_ref.getPointer() == null && ret_prop_ref.getPointer() != null) {
+           /* if (ret_prop_ref != null) {
                 x11.XFree(ret_prop_ref.getPointer());
-            }
+            }*/
 
             if (display != null && cleanupDisplay) {
                 x11.XCloseDisplay(display);
@@ -165,13 +166,14 @@ public class XInfo extends CachingInfoInterface implements WindowInfoInterface {
                 c.setFromCache(true);
             }
         } finally {
-            if (ret_prop_ref != null && ret_prop_ref.getPointer() != null) {
+            /*if (ret_prop_ref != null) {
                 x11.XFree(ret_prop_ref.getPointer());
-            }
+            }*/
 
-            if (display != null)
+            if (display != null) {
                 x11.XCloseDisplay(display);
-            display = null;
+                display = null;
+            }
         }
 
         return c;

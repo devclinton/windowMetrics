@@ -39,11 +39,11 @@ public class ProcessMetric extends AbstractTimestampEntity implements Serializab
 
     @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true, mappedBy = "process")
     @OrderBy("updated")
-    private List<WindowMetric> windows = new ArrayList<WindowMetric>();
+    private List<WindowMetric> windows = new ArrayList<>();
 
     @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true, mappedBy = "process")
     @OrderBy("updated")
-    private List<ArgumentsMetric> arguments = new ArrayList<ArgumentsMetric>();
+    private List<ArgumentsMetric> arguments = new ArrayList<>();
 
     public List<WindowMetric> getWindows() {
         return windows;

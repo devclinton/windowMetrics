@@ -156,9 +156,6 @@ public class WindowInfoService extends AbstractScheduledService {
                             activeFor = 0;
                             lastWindow = currentWindowMetric;
                         }
-                        if (lastWindow == null) {
-                            lastWindow = currentWindowMetric;
-                        }
                     } catch (HibernateException e) {
                         transaction.rollback();
                         m_logger.severe(e.toString());

@@ -28,7 +28,7 @@ public class ProcessInfo {
         return fromCache;
     }
 
-    public void setFromCache(boolean fromCache) {
+    public void setFromCache(@SuppressWarnings("SameParameterValue") boolean fromCache) {
         this.fromCache = fromCache;
     }
 
@@ -37,7 +37,7 @@ public class ProcessInfo {
 
         if (other.getClass() == ProcessInfo.class) {
             ProcessInfo o = (ProcessInfo) other;
-            return executable == o.executable && arguments == o.arguments;
+            return executable.equals(o.executable) && ((arguments == null && o.arguments == null) || arguments.equals(o.arguments));
         }
 
         return false;
